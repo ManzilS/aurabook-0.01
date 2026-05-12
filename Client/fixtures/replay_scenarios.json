@@ -1,0 +1,39 @@
+[
+  {
+    "name": "exact_match_intercept",
+    "prompt": "Fix this FastAPI CORS middleware setup.",
+    "max_gradient": "full",
+    "file_name": "app.py",
+    "file_content": "app.add_middleware(CORSMiddleware)\n",
+    "expected_gradient": "full",
+    "expected_keyword": "fastapi.middleware.cors import CORSMiddleware"
+  },
+  {
+    "name": "notes_injection",
+    "prompt": "My async request is blocking the event loop and requests.get is freezing everything.",
+    "max_gradient": "notes",
+    "expected_gradient": "notes",
+    "expected_keyword": "httpx.AsyncClient"
+  },
+  {
+    "name": "guide_injection",
+    "prompt": "Fix this pandas SettingWithCopyWarning.",
+    "max_gradient": "guide",
+    "expected_gradient": "guide",
+    "expected_keyword": ".loc"
+  },
+  {
+    "name": "walkthrough_injection",
+    "prompt": "My async request is blocking the event loop.",
+    "max_gradient": "walkthrough",
+    "expected_gradient": "walkthrough",
+    "expected_keyword": "httpx.AsyncClient"
+  },
+  {
+    "name": "pass_through",
+    "prompt": "Write a Python function that reverses a string.",
+    "max_gradient": "full",
+    "expected_gradient": "pass_through",
+    "expected_keyword": "passed through unchanged"
+  }
+]

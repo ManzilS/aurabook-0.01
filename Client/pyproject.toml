@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=69.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aurabook"
+version = "0.1.0"
+description = "AuraBook local client proxy and memory daemon"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.115.0",
+  "httpx>=0.28.0",
+  "pydantic>=2.8.0",
+  "pydantic-settings>=2.4.0",
+  "typer>=0.12.3",
+  "uvicorn[standard]>=0.30.0",
+  "watchfiles>=0.23.0",
+  "xxhash>=3.5.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3.0",
+  "pytest-asyncio>=0.24.0",
+]
+
+[project.scripts]
+aura = "aurabook.cli:main"
+aurabook-replay = "scripts.replay_harness:main"
+aurabook-benchmark = "scripts.benchmark_eval:main"
+aurabook-judge = "scripts.judge_mode:main"
+
+[tool.setuptools.packages.find]
+include = ["aurabook*", "scripts*"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+packages = ["aurabook"]

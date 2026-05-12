@@ -1,0 +1,35 @@
+version: "3.9"
+
+services:
+  aurabook-local:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["aura", "start", "--demo"]
+    environment:
+      AURABOOK_DEMO_MODE: "true"
+      AURABOOK_CLOUD_DEMO_MODE: "true"
+      AURABOOK_CLOUD_ENABLED: "true"
+      AURABOOK_WATCH_ROOT: /workspace
+      AURABOOK_STATE_DIR: /data/local
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./:/workspace
+      - aurabook_local_data:/data/local
+
+  aurabook-cloud:
+    build:
+      context: ./aurabook-cloud
+      dockerfile: Dockerfile
+    environment:
+      AURABOOK_CLOUD_DEMO_MODE: "true"
+      AURABOOK_CLOUD_DEMO_STORE_PATH: /data/cloud/cloud_brain.json
+    ports:
+      - "8000:8000"
+    volumes:
+      - aurabook_cloud_data:/data/cloud
+
+volumes:
+  aurabook_local_data:
+  aurabook_cloud_data:

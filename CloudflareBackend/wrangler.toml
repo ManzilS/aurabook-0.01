@@ -1,0 +1,6 @@
+name = "aurabook-api"
+main = "src/index.ts"
+compatibility_date = "2026-04-30"
+
+[vars]
+AURABOOK_ALLOWED_ORIGINS = "aurabooks.vercel.app,http://localhost:5173,http://127.0.0.1:5173"

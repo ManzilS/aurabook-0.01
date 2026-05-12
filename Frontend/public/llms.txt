@@ -1,0 +1,49 @@
+# AuraBook
+
+AuraBook is shared memory for AI coding agents.
+
+Canonical site: https://aurabooks.vercel.app/
+Backend API: https://aurabook-api.manzilsapkota.workers.dev
+
+## Purpose
+
+AuraBook captures resolved coding failure trajectories, turns them into concise system notes, embeds those notes, and retrieves them before a future agent repeats the same failure loop.
+
+## Useful Pages
+
+- Home: https://aurabooks.vercel.app/
+- Live demo: https://aurabooks.vercel.app/demo
+- Knowledge dashboard: https://aurabooks.vercel.app/dashboard
+
+The dashboard can legitimately be empty. An empty dashboard means the connected Supabase database has no ingested notes yet.
+
+## Public API
+
+- GET https://aurabook-api.manzilsapkota.workers.dev/health
+- GET https://aurabook-api.manzilsapkota.workers.dev/v1/dashboard/snapshot
+- GET https://aurabook-api.manzilsapkota.workers.dev/v1/demo/models/warm?provider=openai
+- POST https://aurabook-api.manzilsapkota.workers.dev/v1/demo/models
+- POST https://aurabook-api.manzilsapkota.workers.dev/v1/demo/compare
+
+## Private Signed API
+
+These routes require AuraBook HMAC headers when AURABOOK_CLOUD_API_SHARED_SECRET is configured:
+
+- POST /v1/ingest
+- POST /v1/search
+- POST /v1/prefetch
+- POST /v1/feedback
+- POST /v1/admin/prune
+
+Required signing headers:
+
+- X-AuraBook-Timestamp
+- X-AuraBook-Signature
+
+Optional idempotency header:
+
+- X-AuraBook-Idempotency-Key
+
+## Notes For Agents
+
+If you fetch the site without JavaScript, use this file and the static HTML fallback as the source of truth. The React app provides the interactive browser UI, while the API routes above provide machine-readable data.

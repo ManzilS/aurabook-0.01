@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=69.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aurabook-cloud"
+version = "0.1.0"
+description = "AuraBook Cloud Brain API, worker, and synthetic swarm generator"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.115.0",
+  "httpx>=0.28.0",
+  "openai>=1.0.0",
+  "pydantic>=2.8.0",
+  "pydantic-settings>=2.4.0",
+  "supabase>=2.0.0",
+  "uvicorn[standard]>=0.30.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3.0",
+  "pytest-asyncio>=0.24.0",
+]
+
+[project.scripts]
+aurabook-cloud-api = "api.main:main"
+aurabook-cloud-janitor = "worker.janitor:main"
+aurabook-cloud-swarm = "scripts.swarm_generator:main"
+aurabook-cloud-repo-swarm = "scripts.repo_swarm_runner:main"
+aurabook-cloud-sanitize = "scripts.sanitize_live_trajectories:main"
+
+[tool.setuptools]
+py-modules = ["config"]
+
+[tool.setuptools.packages.find]
+include = ["api*", "db*", "models*", "services*", "worker*", "scripts*"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+packages = ["api", "db", "models", "services", "worker"]

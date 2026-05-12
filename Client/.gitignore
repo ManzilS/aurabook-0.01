@@ -1,0 +1,73 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+parts/
+var/
+sdist/
+develop-eggs/
+.installed.cfg
+lib/
+lib64/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Type checking
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pytype/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment / secrets
+.env
+.env.local
+.env.*.local
+ai.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Locks (keep uv.lock, exclude pip)
+pip-wheel-metadata/
+
+# Local state
+.aurabook/
+*.db
+*.sqlite
+*.lance/
+
+# Runtime state / local secrets
+.aurabook-state/
+.playwright-mcp/
+aurabook-cloud/.run/
+aurabook-cloud/.swarm/workspaces/
+*.log
+cloud-api.*.log
+
+# Git nested repos — include source but not their .git
+LocalBrain/.git
+Router/.git

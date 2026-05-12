@@ -1,0 +1,32 @@
+{
+  "targets": [
+    {
+      "target_id": "local-python-example",
+      "repository": "C:/path/to/local/python-project",
+      "goal": "Build the local Python project and repair the first failing test or compile error.",
+      "focus_files": [
+        "pyproject.toml",
+        "src/app.py"
+      ]
+    },
+    {
+      "target_id": "remote-node-example",
+      "repository": "https://github.com/owner/repo.git",
+      "goal": "Build the frontend project and repair the first failing build issue.",
+      "build_commands": [
+        {
+          "shell": "npm run build"
+        }
+      ],
+      "setup_commands": [
+        {
+          "shell": "npm install"
+        }
+      ],
+      "focus_files": [
+        "package.json",
+        "src/main.tsx"
+      ]
+    }
+  ]
+}

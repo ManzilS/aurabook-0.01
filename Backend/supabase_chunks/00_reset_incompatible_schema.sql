@@ -1,0 +1,10 @@
+drop table if exists public.trajectory_edges cascade;
+drop table if exists public.trajectory_nodes cascade;
+drop table if exists public.trajectory_notes cascade;
+drop table if exists public.trajectories cascade;
+drop function if exists public.match_notes(vector(1536), float, int);
+drop function if exists public.match_notes(extensions.vector, float, integer);
+drop function if exists public.match_notes(jsonb, float, integer);
+drop function if exists public.match_notes(text, float, integer);
+drop extension if exists vector cascade;
+notify pgrst, 'reload schema';

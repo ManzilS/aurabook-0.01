@@ -1,0 +1,94 @@
+{
+  "targets": [
+    {
+      "target_id": "flask",
+      "repository": "https://github.com/pallets/flask.git",
+      "goal": "Build the Flask repository and repair the first failing setup or test issue.",
+      "focus_files": ["pyproject.toml"]
+    },
+    {
+      "target_id": "click",
+      "repository": "https://github.com/pallets/click.git",
+      "goal": "Build the Click repository and repair the first failing setup or test issue.",
+      "focus_files": ["pyproject.toml"]
+    },
+    {
+      "target_id": "itsdangerous",
+      "repository": "https://github.com/pallets/itsdangerous.git",
+      "goal": "Build the ItsDangerous repository and repair the first failing setup or test issue.",
+      "focus_files": ["pyproject.toml"]
+    },
+    {
+      "target_id": "werkzeug",
+      "repository": "https://github.com/pallets/werkzeug.git",
+      "goal": "Build the Werkzeug repository and repair the first failing setup or test issue.",
+      "focus_files": ["pyproject.toml"]
+    },
+    {
+      "target_id": "requests",
+      "repository": "https://github.com/psf/requests.git",
+      "goal": "Build the Requests repository and repair the first failing setup or test issue.",
+      "focus_files": ["pyproject.toml"]
+    },
+    {
+      "target_id": "httpx",
+      "repository": "https://github.com/encode/httpx.git",
+      "goal": "Build the HTTPX repository and repair the first failing setup or test issue.",
+      "focus_files": ["pyproject.toml"]
+    },
+    {
+      "target_id": "httpcore",
+      "repository": "https://github.com/encode/httpcore.git",
+      "goal": "Build the HTTPCore repository and repair the first failing setup or test issue.",
+      "focus_files": ["pyproject.toml"]
+    },
+    {
+      "target_id": "starlette",
+      "repository": "https://github.com/encode/starlette.git",
+      "goal": "Build the Starlette repository and repair the first failing setup or test issue.",
+      "focus_files": ["pyproject.toml"]
+    },
+    {
+      "target_id": "uvicorn",
+      "repository": "https://github.com/encode/uvicorn.git",
+      "goal": "Build the Uvicorn repository and repair the first failing setup or test issue.",
+      "focus_files": ["pyproject.toml"]
+    },
+    {
+      "target_id": "fastapi",
+      "repository": "https://github.com/fastapi/fastapi.git",
+      "goal": "Build the FastAPI repository and repair the first failing setup or test issue.",
+      "focus_files": ["pyproject.toml"]
+    },
+    {
+      "target_id": "sqlmodel",
+      "repository": "https://github.com/fastapi/sqlmodel.git",
+      "goal": "Build the SQLModel repository and repair the first failing setup or test issue.",
+      "focus_files": ["pyproject.toml"]
+    },
+    {
+      "target_id": "pyjwt",
+      "repository": "https://github.com/jpadilla/pyjwt.git",
+      "goal": "Build the PyJWT repository and repair the first failing setup or test issue.",
+      "focus_files": ["pyproject.toml"]
+    },
+    {
+      "target_id": "schedule",
+      "repository": "https://github.com/dbader/schedule.git",
+      "goal": "Build the Schedule repository and repair the first failing setup or test issue.",
+      "focus_files": ["setup.py"]
+    },
+    {
+      "target_id": "pydantic-settings",
+      "repository": "https://github.com/pydantic/pydantic-settings.git",
+      "goal": "Build the Pydantic Settings repository and repair the first failing setup or test issue.",
+      "focus_files": ["pyproject.toml"]
+    },
+    {
+      "target_id": "aiohttp",
+      "repository": "https://github.com/aio-libs/aiohttp.git",
+      "goal": "Build the aiohttp repository and repair the first failing setup or test issue.",
+      "focus_files": ["pyproject.toml"]
+    }
+  ]
+}
