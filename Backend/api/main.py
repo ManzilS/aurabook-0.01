@@ -20,6 +20,7 @@ from pydantic import BaseModel
 
 from api.auth import api_keys_ddl, extract_api_key, generate_api_key, validate_api_key
 from api.observability import RequestLoggingMiddleware, register_observability_routes
+from api.orgs import router as orgs_router
 from api.rate_limit import RateLimiter
 from config import Settings, get_settings
 from db.base import GraphStore, VectorStore
@@ -220,6 +221,8 @@ def create_app(
             pool = await closeable.get_pool()
             async with pool.acquire() as conn:
                 await conn.execute(api_keys_ddl())
+                from db.multi_tenant import MULTI_TENANT_DDL
+                await conn.execute(MULTI_TENANT_DDL)
         try:
             yield
         finally:
@@ -256,6 +259,7 @@ def create_app(
     app.state.services = resolved_services
     app.state.rate_limiter = rate_limiter
     register_observability_routes(app, resolved_services)
+    app.include_router(orgs_router)
     app.state.dashboard_service = DashboardService(
         graph_store=resolved_services.graph_store,
         vector_store=resolved_services.vector_store,

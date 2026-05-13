@@ -39,6 +39,7 @@ aurabook-cloud-api = "api.main:main"
 aurabook-cloud-janitor = "worker.janitor:main"
 aurabook-cloud-swarm = "scripts.swarm_generator:main"
 aurabook-cloud-repo-swarm = "scripts.repo_swarm_runner:main"
+aurabook-cloud-seed = "scripts.seed:main"
 aurabook-cloud-sanitize = "scripts.sanitize_live_trajectories:main"
 
 [tool.setuptools]
