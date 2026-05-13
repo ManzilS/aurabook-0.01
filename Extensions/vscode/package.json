@@ -1,0 +1,94 @@
+{
+  "name": "aurabook",
+  "displayName": "AuraBook — Collective AI Memory",
+  "description": "See when AuraBook injects community fixes into your AI tools. Status bar indicator, session stats, and one-click setup.",
+  "version": "0.1.0",
+  "publisher": "aurabook",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ManzilS/full-book"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other",
+    "Machine Learning"
+  ],
+  "keywords": [
+    "ai",
+    "coding-assistant",
+    "collective-memory",
+    "developer-tools",
+    "aurabook"
+  ],
+  "icon": "icon.png",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "aurabook.showDashboard",
+        "title": "AuraBook: Open Dashboard"
+      },
+      {
+        "command": "aurabook.setup",
+        "title": "AuraBook: Setup Wizard"
+      },
+      {
+        "command": "aurabook.toggleMode",
+        "title": "AuraBook: Switch Connectivity Mode"
+      },
+      {
+        "command": "aurabook.showSessionStats",
+        "title": "AuraBook: Show Session Stats"
+      }
+    ],
+    "configuration": {
+      "title": "AuraBook",
+      "properties": {
+        "aurabook.proxyUrl": {
+          "type": "string",
+          "default": "http://127.0.0.1:8080",
+          "description": "URL of the local AuraBook proxy"
+        },
+        "aurabook.cloudUrl": {
+          "type": "string",
+          "default": "http://127.0.0.1:8000",
+          "description": "URL of the AuraBook Cloud Brain"
+        },
+        "aurabook.connectivityMode": {
+          "type": "string",
+          "enum": ["local_only", "hybrid", "cloud_only"],
+          "default": "cloud_only",
+          "description": "Data routing mode"
+        },
+        "aurabook.pollingIntervalMs": {
+          "type": "number",
+          "default": 5000,
+          "description": "How often to poll the proxy for status (ms)"
+        },
+        "aurabook.showStatusBar": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show AuraBook status in the VS Code status bar"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "vsce package",
+    "lint": "eslint src --ext ts"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.5.0",
+    "@vscode/vsce": "^3.0.0"
+  }
+}

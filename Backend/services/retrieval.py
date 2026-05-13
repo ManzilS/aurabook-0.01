@@ -46,7 +46,7 @@ def build_retrieval_text(*, note_text: str, trajectory: StoredTrajectory) -> str
         f"Reflection:\n{trajectory.ai_reflection or ''}",
         f"Attempted models:\n{attempted_models}",
         f"Model attempt counts:\n{model_attempt_counts}",
-        f"Attempt history:\n{'\n\n'.join(history_lines) if history_lines else ''}",
+        "Attempt history:\n{}".format('\n\n'.join(history_lines) if history_lines else ''),
         f"Final fix:\n{trajectory.final_fix}",
     ]
     return "\n\n".join(section for section in sections if section.strip())

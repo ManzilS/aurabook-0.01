@@ -11,6 +11,8 @@ COPY services /app/services
 COPY worker /app/worker
 COPY scripts /app/scripts
 COPY supabase.sql /app/supabase.sql
+COPY alembic.ini /app/alembic.ini
+COPY alembic /app/alembic
 
 ARG DB_EXTRAS="postgres"
 RUN pip install --no-cache-dir ".[$DB_EXTRAS]"
