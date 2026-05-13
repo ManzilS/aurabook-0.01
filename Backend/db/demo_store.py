@@ -11,6 +11,7 @@ from threading import Lock
 from typing import Any
 from uuid import uuid4
 
+from db.base import GraphStore, VectorStore
 from models.schema import (
     FeedbackRequest,
     IngestResponse,
@@ -111,7 +112,7 @@ def _seed_notes() -> list[NoteRecord]:
     ]
 
 
-class DemoGraphStore:
+class DemoGraphStore(GraphStore):
     """JSON-backed graph store used by the cloud API in demo mode."""
 
     def __init__(self, store_path: Path) -> None:
@@ -278,7 +279,7 @@ class DemoGraphStore:
             return deleted
 
 
-class DemoVectorStore:
+class DemoVectorStore(VectorStore):
     """JSON-backed vector store used in demo mode."""
 
     def __init__(self, store_path: Path) -> None:

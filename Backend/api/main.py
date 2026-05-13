@@ -18,11 +18,12 @@ from fastapi import BackgroundTasks, FastAPI, HTTPException, Request, WebSocket,
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+from api.auth import api_keys_ddl, extract_api_key, generate_api_key, validate_api_key
+from api.observability import RequestLoggingMiddleware, register_observability_routes
+from api.rate_limit import RateLimiter
 from config import Settings, get_settings
+from db.base import GraphStore, VectorStore
 from db.demo_store import DemoGraphStore, DemoVectorStore, DeterministicEmbeddingService
-from db.graph import SupabaseGraphStore
-from db.supabase_client import SupabaseClientProvider
-from db.vector import SupabaseVectorStore
 from models.schema import (
     DashboardSnapshot,
     FeedbackRequest,
@@ -52,11 +53,11 @@ class CloudBrainServices:
     """Dependency container for request handlers."""
 
     settings: Settings
-    supabase_provider: SupabaseClientProvider | None
-    graph_store: Any
-    vector_store: Any
+    graph_store: GraphStore
+    vector_store: VectorStore
     embedding_service: Any
     idempotency_store: Any | None
+    _closeable: Any | None = None
 
 
 class DemoCompareRequest(BaseModel):
@@ -135,19 +136,29 @@ async def _embed_live_demo_prompt(prompt: str, api_key: str) -> list[float] | No
         await provider.close()
 
 
+def _resolve_db_backend(settings: Settings) -> str:
+    """Determine which database backend to use."""
+    if settings.db_backend.strip():
+        return settings.db_backend.strip().lower()
+    if settings.database_url.strip():
+        return "postgres"
+    if settings.supabase_url and settings.supabase_service_role_key:
+        return "supabase"
+    return "demo"
+
+
 def build_services(settings: Settings | None = None) -> CloudBrainServices:
     """Construct the production dependency graph."""
     resolved_settings = settings or get_settings()
-    use_demo_mode = resolved_settings.demo_mode or not (
-        resolved_settings.supabase_url
-        and resolved_settings.supabase_service_role_key
-        and resolved_settings.embedding_provider_ready()
-    )
-    if use_demo_mode:
+    backend = _resolve_db_backend(resolved_settings)
+
+    if resolved_settings.demo_mode:
+        backend = "demo"
+
+    if backend == "demo":
         demo_path = Path(resolved_settings.demo_store_path).expanduser().resolve()
         return CloudBrainServices(
             settings=resolved_settings,
-            supabase_provider=None,
             graph_store=DemoGraphStore(demo_path),
             vector_store=DemoVectorStore(demo_path),
             embedding_service=DeterministicEmbeddingService(),
@@ -156,15 +167,35 @@ def build_services(settings: Settings | None = None) -> CloudBrainServices:
             ),
         )
 
-    provider = SupabaseClientProvider(resolved_settings)
-    return CloudBrainServices(
-        settings=resolved_settings,
-        supabase_provider=provider,
-        graph_store=SupabaseGraphStore(provider),
-        vector_store=SupabaseVectorStore(provider),
-        embedding_service=EmbeddingService(resolved_settings),
-        idempotency_store=MemoryIdempotencyStore(),
-    )
+    if backend == "postgres":
+        from db.postgres import PostgresConnectionProvider, PostgresGraphStore, PostgresVectorStore
+
+        provider = PostgresConnectionProvider(resolved_settings.database_url)
+        return CloudBrainServices(
+            settings=resolved_settings,
+            graph_store=PostgresGraphStore(provider),
+            vector_store=PostgresVectorStore(provider),
+            embedding_service=EmbeddingService(resolved_settings),
+            idempotency_store=MemoryIdempotencyStore(),
+            _closeable=provider,
+        )
+
+    if backend == "supabase":
+        from db.graph import SupabaseGraphStore
+        from db.supabase_client import SupabaseClientProvider
+        from db.vector import SupabaseVectorStore
+
+        provider = SupabaseClientProvider(resolved_settings)
+        return CloudBrainServices(
+            settings=resolved_settings,
+            graph_store=SupabaseGraphStore(provider),
+            vector_store=SupabaseVectorStore(provider),
+            embedding_service=EmbeddingService(resolved_settings),
+            idempotency_store=MemoryIdempotencyStore(),
+            _closeable=provider,
+        )
+
+    raise ValueError(f"Unknown db_backend: {backend!r}. Use 'postgres', 'supabase', or 'demo'.")
 
 
 def create_app(
@@ -175,15 +206,25 @@ def create_app(
     resolved_services = services or build_services(settings)
     logging.basicConfig(level=getattr(logging, resolved_services.settings.log_level.upper(), logging.INFO))
 
+    rate_limiter = RateLimiter(
+        requests_per_minute=resolved_services.settings.rate_limit_rpm,
+        burst=resolved_services.settings.rate_limit_burst,
+    )
+
     @asynccontextmanager
     async def lifespan(app: FastAPI):
-        logger.info("AuraBook Cloud Brain starting")
+        logger.info("AuraBook Cloud Brain starting (backend=%s)", _resolve_db_backend(resolved_services.settings))
+        closeable = resolved_services._closeable
+        if hasattr(closeable, "ensure_schema"):
+            await closeable.ensure_schema()
+            pool = await closeable.get_pool()
+            async with pool.acquire() as conn:
+                await conn.execute(api_keys_ddl())
         try:
             yield
         finally:
-            provider = resolved_services.supabase_provider
-            if provider is not None:
-                await provider.close()
+            if closeable is not None:
+                await closeable.close()
             close = getattr(resolved_services.embedding_service, "close", None)
             if callable(close):
                 await close()
@@ -194,26 +235,44 @@ def create_app(
         version="0.1.0",
         lifespan=lifespan,
     )
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origin_regex=r"https?://(localhost|127\.0\.0\.1)(:\d+)?$|https://.*\.vercel\.app$",
-        allow_credentials=False,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
+    cors_origins = resolved_services.settings.cors_allowed_origins.strip()
+    if cors_origins:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=[o.strip() for o in cors_origins.split(",") if o.strip()],
+            allow_credentials=False,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
+    else:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origin_regex=r"https?://(localhost|127\.0\.0\.1)(:\d+)?$",
+            allow_credentials=False,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
+    app.add_middleware(RequestLoggingMiddleware)
     app.state.services = resolved_services
+    app.state.rate_limiter = rate_limiter
+    register_observability_routes(app, resolved_services)
     app.state.dashboard_service = DashboardService(
         graph_store=resolved_services.graph_store,
         vector_store=resolved_services.vector_store,
     )
 
     @app.get("/health")
-    async def health() -> dict[str, str]:
+    async def health() -> dict[str, Any]:
+        backend = _resolve_db_backend(resolved_services.settings)
+        note_count = 0
+        try:
+            note_count = await resolved_services.vector_store.count()
+        except Exception:
+            pass
         return {
             "status": "ok",
-            "mode": "demo"
-            if resolved_services.supabase_provider is None
-            else "supabase",
+            "backend": backend,
+            "note_count": note_count,
         }
 
     @app.get("/v1/dashboard/snapshot", response_model=DashboardSnapshot)
@@ -238,10 +297,28 @@ def create_app(
         except WebSocketDisconnect:
             logger.info("Dashboard websocket disconnected")
 
+    async def _authenticate(request: Request) -> None:
+        """Run rate limiting, then API key or HMAC auth."""
+        svc: CloudBrainServices = request.app.state.services
+        rate_limiter.check(request)
+        pool_getter = None
+        closeable = svc._closeable
+        if hasattr(closeable, "get_pool"):
+            pool_getter = closeable.get_pool
+        key_info = await validate_api_key(
+            request,
+            require=svc.settings.require_api_key,
+            pool_getter=pool_getter,
+        )
+        if key_info is not None:
+            request.state.api_key_info = key_info
+            return
+        await _validate_signature(request, svc.settings)
+
     @app.post("/v1/feedback", response_model=FeedbackResponse)
     async def feedback(payload: FeedbackRequest, request: Request) -> FeedbackResponse:
         svc: CloudBrainServices = request.app.state.services
-        await _validate_signature(request, svc.settings)
+        await _authenticate(request)
         cached = _load_idempotent_response(request, svc, FeedbackResponse)
         if cached is not None:
             return cached
@@ -282,7 +359,7 @@ def create_app(
         background_tasks: BackgroundTasks,
     ) -> IngestResponse:
         svc: CloudBrainServices = request.app.state.services
-        await _validate_signature(request, svc.settings)
+        await _authenticate(request)
         cached = _load_idempotent_response(request, svc, IngestResponse)
         if cached is not None:
             return cached
@@ -297,14 +374,14 @@ def create_app(
     @app.post("/v1/prefetch", response_model=PrefetchResponse)
     async def prefetch(payload: PrefetchRequest, request: Request) -> PrefetchResponse:
         svc: CloudBrainServices = request.app.state.services
-        await _validate_signature(request, svc.settings)
+        await _authenticate(request)
         match = await svc.graph_store.get_prefetch_match(payload.cdc_hash)
         return PrefetchResponse(found=match is not None, match=match)
 
     @app.post("/v1/search", response_model=SearchResponse)
     async def search(payload: SearchRequest, request: Request) -> SearchResponse:
         svc: CloudBrainServices = request.app.state.services
-        await _validate_signature(request, svc.settings)
+        await _authenticate(request)
         query_text = payload.searchable_text()
         query_embedding = await svc.embedding_service.embed_text(payload.searchable_text())
         matches = await svc.vector_store.search(
@@ -411,10 +488,39 @@ def create_app(
             error=result.error,
         )
 
+    class CreateApiKeyRequest(BaseModel):
+        name: str
+
+    class CreateApiKeyResponse(BaseModel):
+        api_key: str
+        key_id: str
+        name: str
+
+    @app.post("/v1/admin/api-keys", response_model=CreateApiKeyResponse)
+    async def create_api_key(payload: CreateApiKeyRequest, request: Request) -> CreateApiKeyResponse:
+        svc: CloudBrainServices = request.app.state.services
+        await _authenticate(request)
+        closeable = svc._closeable
+        if not hasattr(closeable, "get_pool"):
+            raise HTTPException(status_code=501, detail="API key management requires a database backend")
+        raw_key, key_hash = generate_api_key()
+        pool = await closeable.get_pool()
+        async with pool.acquire() as conn:
+            row = await conn.fetchrow(
+                """INSERT INTO api_keys (name, key_hash, key_prefix)
+                   VALUES ($1, $2, $3) RETURNING id""",
+                payload.name, key_hash, raw_key[:12],
+            )
+        return CreateApiKeyResponse(
+            api_key=raw_key,
+            key_id=str(row["id"]),
+            name=payload.name,
+        )
+
     @app.post("/v1/admin/prune")
     async def prune(request: Request) -> dict[str, int]:
         svc: CloudBrainServices = request.app.state.services
-        await _validate_signature(request, svc.settings)
+        await _authenticate(request)
         delete_older_than = getattr(svc.graph_store, "delete_older_than", None)
         if not callable(delete_older_than):
             return {"deleted": 0}

@@ -140,7 +140,6 @@ def services(settings: Settings) -> CloudBrainServices:
     """Return a fake service container for API tests."""
     return CloudBrainServices(
         settings=settings,
-        supabase_provider=None,
         graph_store=FakeGraphStore(),
         vector_store=FakeVectorStore(),
         embedding_service=FakeEmbeddingService(),

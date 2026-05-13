@@ -13,11 +13,22 @@ dependencies = [
   "openai>=1.0.0",
   "pydantic>=2.8.0",
   "pydantic-settings>=2.4.0",
-  "supabase>=2.0.0",
   "uvicorn[standard]>=0.30.0",
 ]
 
 [project.optional-dependencies]
+supabase = [
+  "supabase>=2.0.0",
+]
+postgres = [
+  "asyncpg>=0.30.0",
+  "alembic>=1.14.0",
+  "psycopg2-binary>=2.9.0",
+]
+all = [
+  "supabase>=2.0.0",
+  "asyncpg>=0.30.0",
+]
 dev = [
   "pytest>=8.3.0",
   "pytest-asyncio>=0.24.0",

@@ -13,6 +13,7 @@ from httpx import ASGITransport, AsyncClient
 
 from api.main import build_services, create_app
 from config import Settings
+from db.demo_store import DemoGraphStore
 from models.schema import NoteRecord, NoteSearchResult, PrefetchMatch, StoredTrajectory, TrajectoryTurn
 
 
@@ -364,7 +365,7 @@ def test_build_services_uses_demo_mode_without_live_credentials(tmp_path) -> Non
         )
     )
 
-    assert services.supabase_provider is None
+    assert isinstance(services.graph_store, DemoGraphStore)
 
 
 @pytest.mark.asyncio

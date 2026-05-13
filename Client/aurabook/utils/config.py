@@ -19,6 +19,9 @@ class Settings(BaseSettings):
     dev_mode: bool = False
     demo_mode: bool = False
     cors_origins: str = "*"
+    connectivity_mode: str = "cloud_only"
+    localbrain_url: str = "http://127.0.0.1:8100"
+    localbrain_timeout: float = 5.0
 
     default_adapter: str = "openai_proxy"
     max_loops: int = 1

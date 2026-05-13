@@ -10,6 +10,7 @@ from aurabook.adapters.base import AdapterBase
 from aurabook.adapters.demo import DemoAdapter
 from aurabook.adapters.gemini import GeminiAdapter
 from aurabook.adapters.openai_proxy import OpenAIProxyAdapter
+from aurabook.core.connectivity import ConnectivityMode, DataRouter, LocalBrainClient
 from aurabook.core.models import ResponseGradient
 from aurabook.core.orchestrator import Orchestrator
 from aurabook.core.pipeline import Pipeline
@@ -49,6 +50,8 @@ class ApplicationRuntime:
     orchestrator: Orchestrator
     watcher: BackgroundService
     background_services: tuple[BackgroundService, ...]
+    connectivity_mode: ConnectivityMode
+    data_router: DataRouter | None
     cloud_client: CloudBrainClient | DemoCloudBrainClient | None
     community_service: CommunityContextService
     identity_store: ClientIdentityStore
@@ -149,6 +152,8 @@ def build_runtime(
             else None
         ),
     )
+    connectivity_mode = ConnectivityMode(resolved_settings.connectivity_mode)
+
     resolved_cloud_client = cloud_client
     if resolved_cloud_client is None and resolved_settings.cloud_enabled:
         if resolved_settings.cloud_demo_mode or resolved_settings.demo_mode:
@@ -162,9 +167,36 @@ def build_runtime(
                 client_id=client_id,
             )
 
+    local_brain_client: LocalBrainClient | None = None
+    if connectivity_mode in (ConnectivityMode.LOCAL_ONLY, ConnectivityMode.HYBRID):
+        local_brain_client = LocalBrainClient(
+            resolved_settings.localbrain_url,
+            timeout=resolved_settings.localbrain_timeout,
+        )
+
+    data_router: DataRouter | None = None
+    if connectivity_mode == ConnectivityMode.LOCAL_ONLY and local_brain_client is not None:
+        data_router = DataRouter(
+            ConnectivityMode.LOCAL_ONLY,
+            local_client=local_brain_client,
+        )
+    elif connectivity_mode == ConnectivityMode.HYBRID and local_brain_client is not None and resolved_cloud_client is not None:
+        data_router = DataRouter(
+            ConnectivityMode.HYBRID,
+            local_client=local_brain_client,
+            cloud_client=resolved_cloud_client,
+        )
+    elif connectivity_mode == ConnectivityMode.CLOUD_ONLY and resolved_cloud_client is not None:
+        data_router = DataRouter(
+            ConnectivityMode.CLOUD_ONLY,
+            cloud_client=resolved_cloud_client,
+        )
+
+    effective_client = data_router or resolved_cloud_client
+
     resolved_community_service = community_service or CommunityContextService(
         resolved_settings,
-        cloud_client=resolved_cloud_client,
+        cloud_client=effective_client,
         memory_store=resolved_memory_store,
         status_store=status_store,
         suppressed_note_ids=() if repo_policy is None else tuple(repo_policy.suppressed_note_ids),
@@ -177,7 +209,7 @@ def build_runtime(
         resolved_settings.resolve_queue_dir(),
         status_store=status_store,
     )
-    trajectory_cloud_client = resolved_cloud_client if resolved_settings.upload_enabled else None
+    trajectory_cloud_client = effective_client if resolved_settings.upload_enabled else None
     upload_worker = QueuedUploadWorker(
         queue=upload_queue,
         client=trajectory_cloud_client,
@@ -231,6 +263,8 @@ def build_runtime(
         orchestrator=orchestrator,
         watcher=resolved_watcher,
         background_services=(upload_worker,),
+        connectivity_mode=connectivity_mode,
+        data_router=data_router,
         cloud_client=resolved_cloud_client,
         community_service=resolved_community_service,
         identity_store=resolved_identity_store,
