@@ -8,6 +8,7 @@ import math
 from datetime import UTC, datetime
 from typing import Any
 
+from db.base import VectorStore
 from db.supabase_client import SupabaseClientProvider
 from models.schema import FeedbackRequest, NoteRecord, NoteSearchResult
 from services.retrieval import rerank_results
@@ -48,7 +49,7 @@ def _vector_literal(values: list[float]) -> str:
     return json.dumps([float(value) for value in values], separators=(",", ":"))
 
 
-class SupabaseVectorStore:
+class SupabaseVectorStore(VectorStore):
     """Async wrapper for storing and querying embedded notes."""
 
     def __init__(

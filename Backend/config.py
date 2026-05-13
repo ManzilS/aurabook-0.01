@@ -17,6 +17,10 @@ class Settings(BaseSettings):
     demo_mode: bool = False
     demo_store_path: str = ".demo/cloud_brain.json"
 
+    db_backend: str = ""
+    database_url: str = ""
+    cors_allowed_origins: str = ""
+
     supabase_url: str = ""
     supabase_service_role_key: str = ""
     demo_supabase_url: str = ""
@@ -71,6 +75,9 @@ class Settings(BaseSettings):
     api_signature_max_age_s: int = 300
     idempotency_ttl_s: int = 86400
     retention_days: int = 30
+    require_api_key: bool = False
+    rate_limit_rpm: float = 120.0
+    rate_limit_burst: float = 30.0
 
     model_config = SettingsConfigDict(
         env_prefix="AURABOOK_CLOUD_",

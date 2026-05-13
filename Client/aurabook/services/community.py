@@ -66,7 +66,7 @@ class CommunityContextService:
     async def prefetch_saved_file(self, path: Path, cdc_hash: str) -> None:
         """Look up an exact hash match after a local file save."""
         match = None
-        if self._settings.cloud_enabled and self._cloud_client is not None:
+        if self._cloud_client is not None:
             try:
                 response = await self._cloud_client.prefetch(cdc_hash)
                 match = response.match if response.found else None
@@ -86,7 +86,7 @@ class CommunityContextService:
                 exact_match = None
             else:
                 source = "prefetch_cache"
-        elif self._settings.cloud_enabled and self._cloud_client is not None:
+        elif self._cloud_client is not None:
             query_key = self._normalize_query_key(prompt)
             search_response = self._memory_store.get_search_response(query_key)
             if search_response is None:

@@ -6,6 +6,7 @@ import logging
 from datetime import UTC, datetime
 from typing import Any
 
+from db.base import GraphStore
 from db.supabase_client import SupabaseClientProvider
 from models.schema import (
     GraphEdgeRecord,
@@ -95,7 +96,7 @@ def _metadata_dict(payload: dict[str, Any] | None) -> dict[str, Any]:
     return dict(payload or {})
 
 
-class SupabaseGraphStore:
+class SupabaseGraphStore(GraphStore):
     """Stores trajectories and prompt-attempt-error-fix relationships."""
 
     def __init__(self, provider: SupabaseClientProvider) -> None:

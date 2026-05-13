@@ -12,7 +12,8 @@ COPY worker /app/worker
 COPY scripts /app/scripts
 COPY supabase.sql /app/supabase.sql
 
-RUN pip install --no-cache-dir .
+ARG DB_EXTRAS="postgres"
+RUN pip install --no-cache-dir ".[$DB_EXTRAS]"
 
 EXPOSE 8000
 

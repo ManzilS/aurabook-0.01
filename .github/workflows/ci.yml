@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend-tests:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install ".[dev]"
+      - run: python -m pytest tests/ -x --tb=short -q
+
+  client-tests:
+    name: Client Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Client
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install ".[dev]"
+      - run: python -m pytest tests/ --ignore=tests/test_contracts.py -x --tb=short -q
+
+  localbrain-tests:
+    name: LocalBrain Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Client/LocalBrain
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install ".[dev]"
+      - run: python -m pytest tests/ -x --tb=short -q
+
+  router-tests:
+    name: Router Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Client/Router
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install ".[dev]"
+      - run: python -m pytest tests/ -x --tb=short -q
+
+  docker-build:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t aurabook-backend Backend/
