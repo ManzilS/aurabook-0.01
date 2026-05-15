@@ -66,14 +66,23 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
     async def dispatch(
         self, request: Request, call_next: RequestResponseEndpoint
     ) -> Response:
+        from fastapi.responses import JSONResponse
+
         start = time.perf_counter()
-        response: Response | None = None
+        status = 500
         try:
             response = await call_next(request)
+            status = response.status_code
             return response
+        except Exception:
+            logger.exception("Unhandled exception on %s %s", request.method, request.url.path)
+            status = 500
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Internal server error", "status_code": 500},
+            )
         finally:
             elapsed_ms = (time.perf_counter() - start) * 1000
-            status = response.status_code if response else 500
             path = request.url.path
             _global_metrics.record(path, status, elapsed_ms)
             logger.info(

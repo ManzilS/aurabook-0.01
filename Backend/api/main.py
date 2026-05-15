@@ -19,6 +19,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from api.auth import api_keys_ddl, extract_api_key, generate_api_key, validate_api_key
+from api.errors import register_error_handlers
+from api.oauth import router as oauth_router, load_session
 from api.observability import RequestLoggingMiddleware, register_observability_routes
 from api.orgs import router as orgs_router
 from api.rate_limit import RateLimiter
@@ -256,9 +258,11 @@ def create_app(
             allow_headers=["*"],
         )
     app.add_middleware(RequestLoggingMiddleware)
+    register_error_handlers(app)
     app.state.services = resolved_services
     app.state.rate_limiter = rate_limiter
     register_observability_routes(app, resolved_services)
+    app.include_router(oauth_router)
     app.include_router(orgs_router)
     app.state.dashboard_service = DashboardService(
         graph_store=resolved_services.graph_store,
@@ -302,9 +306,15 @@ def create_app(
             logger.info("Dashboard websocket disconnected")
 
     async def _authenticate(request: Request) -> None:
-        """Run rate limiting, then API key or HMAC auth."""
+        """Run rate limiting, then session cookie / API key / HMAC auth."""
         svc: CloudBrainServices = request.app.state.services
         rate_limiter.check(request)
+
+        session = load_session(request)
+        if session:
+            request.state.session = session
+            return
+
         pool_getter = None
         closeable = svc._closeable
         if hasattr(closeable, "get_pool"):

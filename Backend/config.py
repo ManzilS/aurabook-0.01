@@ -78,6 +78,11 @@ class Settings(BaseSettings):
     require_api_key: bool = False
     rate_limit_rpm: float = 120.0
     rate_limit_burst: float = 30.0
+    github_client_id: str = ""
+    github_client_secret: str = ""
+    github_redirect_uri: str = ""
+    session_secret: str = ""
+    frontend_url: str = ""
 
     model_config = SettingsConfigDict(
         env_prefix="AURABOOK_CLOUD_",

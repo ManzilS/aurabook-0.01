@@ -1,0 +1,105 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/backend
+
+jobs:
+  test:
+    name: Test Gate
+    uses: ./.github/workflows/ci.yml
+
+  build-and-push:
+    name: Build & Push Image
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image_tag: ${{ steps.meta.outputs.tags }}
+      digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=
+            type=raw,value=latest
+
+      - id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: Backend
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          build-args: DB_EXTRAS=postgres
+
+  migrate:
+    name: Run Migrations
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install ".[postgres]"
+        working-directory: Backend
+      - run: alembic upgrade head
+        working-directory: Backend
+        env:
+          AURABOOK_CLOUD_DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+  deploy:
+    name: Deploy to Production
+    needs: [build-and-push, migrate]
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            cd /opt/aurabook
+            echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            docker compose pull backend
+            docker compose up -d --no-deps backend
+            docker compose exec backend python -c "import httpx; r = httpx.get('http://localhost:8000/ready'); assert r.json()['ready'], r.text"
+            echo "Deploy complete. Image: ${{ needs.build-and-push.outputs.digest }}"
+
+  notify:
+    name: Post-Deploy Check
+    needs: deploy
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Check deploy result
+        run: |
+          if [ "${{ needs.deploy.result }}" = "success" ]; then
+            echo "Deployment succeeded"
+          else
+            echo "::error::Deployment failed — check logs"
+            exit 1
+          fi
