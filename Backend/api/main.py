@@ -19,6 +19,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from api.auth import api_keys_ddl, extract_api_key, generate_api_key, validate_api_key
+from api.billing import router as billing_router
 from api.errors import register_error_handlers
 from api.oauth import router as oauth_router, load_session
 from api.observability import RequestLoggingMiddleware, register_observability_routes
@@ -264,6 +265,7 @@ def create_app(
     register_observability_routes(app, resolved_services)
     app.include_router(oauth_router)
     app.include_router(orgs_router)
+    app.include_router(billing_router)
     app.state.dashboard_service = DashboardService(
         graph_store=resolved_services.graph_store,
         vector_store=resolved_services.vector_store,

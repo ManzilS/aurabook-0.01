@@ -83,6 +83,9 @@ class Settings(BaseSettings):
     github_redirect_uri: str = ""
     session_secret: str = ""
     frontend_url: str = ""
+    stripe_secret_key: str = ""
+    stripe_webhook_secret: str = ""
+    stripe_price_plan_map: str = ""  # e.g. "price_abc:starter,price_def:team,price_ghi:enterprise"
 
     model_config = SettingsConfigDict(
         env_prefix="AURABOOK_CLOUD_",

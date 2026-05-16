@@ -8,6 +8,7 @@ import { ConnectionStatus } from './ConnectionStatus'
 const navItems = [
   { label: 'Demo', to: '/demo' },
   { label: 'Dashboard', to: '/dashboard' },
+  { label: 'Teams', to: '/orgs' },
 ]
 
 export function Navbar() {

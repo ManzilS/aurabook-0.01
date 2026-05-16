@@ -1,0 +1,34 @@
+{$DOMAIN} {
+    # API routes → backend
+    handle /v1/* {
+        reverse_proxy backend:8000
+    }
+    handle /auth/* {
+        reverse_proxy backend:8000
+    }
+    handle /health {
+        reverse_proxy backend:8000
+    }
+    handle /ready {
+        reverse_proxy backend:8000
+    }
+    handle /metrics {
+        reverse_proxy backend:8000
+    }
+
+    # Everything else → frontend SPA
+    handle {
+        reverse_proxy frontend:80
+    }
+
+    # Security headers
+    header {
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        Referrer-Policy strict-origin-when-cross-origin
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    }
+
+    # Gzip compression
+    encode gzip
+}

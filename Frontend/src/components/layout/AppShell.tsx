@@ -13,6 +13,12 @@ const NoteIssuePage = lazy(async () =>
 const ErrorIssuePage = lazy(async () =>
   import('../../pages/ErrorIssuePage').then((module) => ({ default: module.ErrorIssuePage })),
 )
+const OrgsListPage = lazy(async () =>
+  import('../../pages/OrgsListPage').then((module) => ({ default: module.OrgsListPage })),
+)
+const OrgPage = lazy(async () =>
+  import('../../pages/OrgPage').then((module) => ({ default: module.OrgPage })),
+)
 
 export function AppShell() {
   const location = useLocation()
@@ -33,6 +39,8 @@ export function AppShell() {
               <Route path="/" element={<LandingPage />} />
               <Route path="/demo" element={<DemoPage />} />
               <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/orgs" element={<OrgsListPage />} />
+              <Route path="/orgs/:slug" element={<OrgPage />} />
               <Route path="/errors" element={<Navigate to="/dashboard" replace />} />
               <Route path="/errors/:clusterId" element={<ErrorIssuePage />} />
               <Route path="/notes/:noteId" element={<NoteIssuePage />} />
