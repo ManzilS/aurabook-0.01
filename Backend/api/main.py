@@ -21,6 +21,7 @@ from pydantic import BaseModel
 from api.auth import api_keys_ddl, extract_api_key, generate_api_key, validate_api_key
 from api.billing import router as billing_router
 from api.errors import register_error_handlers
+from api.experiments import router as experiments_router
 from api.oauth import router as oauth_router, load_session
 from api.observability import RequestLoggingMiddleware, register_observability_routes
 from api.orgs import router as orgs_router
@@ -40,6 +41,9 @@ from models.schema import (
     TrajectoryIngestRequest,
 )
 from services.embeddings import EmbeddingService
+from services.evaluation import evaluate_pipeline, enrich_results
+from services.experiments import ExperimentEngine, ExperimentStore
+from services.stats import StatsCollector
 from services.dashboard import DashboardService
 from services.idempotency import FileBackedIdempotencyStore, MemoryIdempotencyStore
 from services.live_compare import run_live_compare
@@ -266,6 +270,13 @@ def create_app(
     app.include_router(oauth_router)
     app.include_router(orgs_router)
     app.include_router(billing_router)
+    app.include_router(experiments_router)
+
+    # Experiment engine and stats collector
+    experiment_store = ExperimentStore(persist_path=".data/experiments.json")
+    app.state.experiment_engine = ExperimentEngine(experiment_store)
+    app.state.stats_collector = StatsCollector(persist_path=".data/experiment_events.jsonl")
+
     app.state.dashboard_service = DashboardService(
         graph_store=resolved_services.graph_store,
         vector_store=resolved_services.vector_store,
@@ -398,9 +409,24 @@ def create_app(
     async def search(payload: SearchRequest, request: Request) -> SearchResponse:
         svc: CloudBrainServices = request.app.state.services
         await _authenticate(request)
+        t_start = time.perf_counter()
+
         query_text = payload.searchable_text()
         query_embedding = await svc.embedding_service.embed_text(payload.searchable_text())
-        matches = await svc.vector_store.search(
+
+        # Resolve experiment variant for this request
+        engine: ExperimentEngine = request.app.state.experiment_engine
+        stats: StatsCollector = request.app.state.stats_collector
+        client_id = payload.client_id if hasattr(payload, "client_id") else ""
+        pipeline, exp_id, var_id = engine.resolve_pipeline(
+            client_id=client_id,
+            default_vector_weight=svc.settings.retrieval_vector_weight,
+            default_lexical_weight=svc.settings.retrieval_lexical_weight,
+            default_quality_weight=svc.settings.retrieval_quality_weight,
+        )
+
+        # Fetch more candidates than needed so the pipeline can rerank
+        candidates = await svc.vector_store.search(
             query_embedding,
             query_text=query_text,
             settings=svc.settings,
@@ -411,7 +437,24 @@ def create_app(
                 else svc.settings.search_match_threshold
             ),
         )
-        matches = matches[: payload.limit]
+
+        # Run the experiment's scoring pipeline
+        ranked = evaluate_pipeline(candidates, pipeline, query_text)
+        ranked = ranked[: payload.limit]
+        matches = enrich_results(ranked, experiment_id=exp_id, variant_id=var_id)
+
+        # Record experiment event
+        latency_ms = (time.perf_counter() - t_start) * 1000
+        if exp_id:
+            stats.record_search(
+                experiment_id=exp_id,
+                variant_id=var_id,
+                client_id=client_id,
+                query_text=query_text,
+                result_count=len(matches),
+                latency_ms=latency_ms,
+            )
+
         record_matches = getattr(svc.vector_store, "record_matches", None)
         if callable(record_matches):
             await record_matches([match.note_id for match in matches])
