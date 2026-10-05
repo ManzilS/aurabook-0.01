@@ -55,7 +55,7 @@ data. See `.env.example`; demo mode is a separate local fixture store.
 
 1. Deploy `CloudflareBackend` using `npm run deploy`. Set its secrets as listed
    in `CloudflareBackend/README.md`, and set allowed origins to your Vercel URL.
-2. Connect the `full-book` GitHub repo to Vercel. Root directory: `Frontend`.
+2. Connect the `ManzilS/aurabook-CODEX` GitHub repo to Vercel. Root directory: `Frontend`.
    Build command: `npm run build`. Output: `dist`. Node version: 24.
 3. Set `VITE_AURABOOK_API_BASE_URL` to the deployed Worker's HTTPS URL, then rebuild.
    This also configures the no-JavaScript page's form and API links.

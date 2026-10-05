@@ -13,6 +13,7 @@ build/
 .claude/
 
 __pycache__/
+*.egg-info/
 *.py[cod]
 .pytest_cache/
 .mypy_cache/
