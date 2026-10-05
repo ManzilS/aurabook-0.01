@@ -13,6 +13,7 @@ import type {
 } from '../types/dashboard'
 
 let disconnectTransport: null | (() => void) = null
+let transportGeneration = 0
 
 const defaultFilters: DashboardFilters = {
   language: 'All',
@@ -27,8 +28,8 @@ const defaultFilters: DashboardFilters = {
 function computeStats(notes: KnowledgeNote[]): DashboardStats {
   return {
     totalNotes: notes.length,
-    activeAgents: Math.max(6, Math.round(notes.reduce((sum, note) => sum + note.usageCount, 0) / 9)),
-    problemsSolvedToday: notes.filter((note) => !note.unsolved).length * 3,
+    activeAgents: 0,
+    problemsSolvedToday: notes.filter((note) => !note.unsolved && note.createdAt.slice(0, 10) === new Date().toISOString().slice(0, 10)).length,
   }
 }
 
@@ -197,9 +198,11 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       return
     }
 
-    set({ loading: true, error: null })
-    disconnectTransport = await bootstrapDashboardTransport({
+    const generation = ++transportGeneration
+    set({ loading: true, initialized: true, error: null })
+    const disconnect = await bootstrapDashboardTransport({
       onSnapshot: (snapshot) => {
+        if (generation !== transportGeneration) return
         const nextNotes = uniqueNotes(snapshot.notes)
         set({
           loading: false,
@@ -213,25 +216,34 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
         })
       },
       onNote: (note) => {
+        if (generation !== transportGeneration) return
         const nextNotes = upsertNote(get().notes, note)
         set({
           notes: nextNotes,
-          stats: computeStats(nextNotes),
+          stats: { ...get().stats, totalNotes: nextNotes.length },
           selectedNoteId: get().selectedNoteId ?? note.id,
         })
       },
       onActivity: (activity) => {
+        if (generation !== transportGeneration) return
         set({
           activities: sortActivities([activity, ...get().activities]).slice(0, 12),
         })
       },
       onStatus: (status) => {
+        if (generation !== transportGeneration) return
         useAppStore.getState().setConnectionStatus(status)
-        set({ connectionStatus: status })
+        set({
+          connectionStatus: status,
+          error: status === 'disconnected' ? 'Cannot reach the dashboard API. Retrying automatically.' : null,
+        })
       },
     })
+    if (generation !== transportGeneration) disconnect()
+    else disconnectTransport = disconnect
   },
   teardown: () => {
+    ++transportGeneration
     disconnectTransport?.()
     disconnectTransport = null
     useAppStore.getState().setConnectionStatus('standby')
@@ -278,7 +290,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       activities: sortActivities([
         {
           id: `vote-${Date.now()}`,
-          text: `New note rated ${direction === 'up' ? 'up' : 'down'} — ${notes.find((note) => note.id === noteId)?.problemTag ?? 'AuraBook note'}`,
+          text: `Local rating preview: ${direction} — ${notes.find((note) => note.id === noteId)?.problemTag ?? 'AuraBook note'}`,
           createdAt: new Date().toISOString(),
           tone: direction === 'up' ? 'success' : 'warning',
         },
@@ -325,7 +337,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       activities: sortActivities([
         {
           id: `report-${Date.now()}`,
-          text: `Note deprecated: ${get().notes.find((note) => note.id === noteId)?.problemTag ?? 'AuraBook note'} — score fell below threshold`,
+          text: `Local outdated flag: ${get().notes.find((note) => note.id === noteId)?.problemTag ?? 'AuraBook note'}`,
           createdAt: new Date().toISOString(),
           tone: 'warning',
         },
@@ -379,7 +391,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       activities: sortActivities([
         {
           id: `solve-${Date.now()}`,
-          text: `Agent solved: ${nextNotes.find((note) => note.id === noteId)?.problemTag ?? 'AuraBook note'} — just now`,
+          text: `Local solution draft: ${nextNotes.find((note) => note.id === noteId)?.problemTag ?? 'AuraBook note'}`,
           createdAt: new Date().toISOString(),
           tone: 'success',
         },

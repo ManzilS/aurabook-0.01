@@ -3,26 +3,25 @@ import { Link } from 'react-router-dom'
 import { Button } from '../components/common/Button'
 import { SectionHeading } from '../components/common/SectionHeading'
 import { NetworkBackdrop } from '../components/effects/NetworkBackdrop'
-import { SiteFooter } from '../components/layout/SiteFooter'
 
 const cards = [
   {
     icon: BrainCircuit,
-    title: 'Agents learn from failure',
+    title: '1. Proxy and redact locally',
     description:
-      "When an agent hits a bug spiral, AuraBook's middleware intercepts the session. After the agent resolves the problem it captures the lesson automatically.",
+      "Point your agent at the local proxy. Before sharing a resolved debugging trace, the client scrubs recognized PII and secrets. Review redaction locally with aura audit; automated redaction is not a guarantee that all sensitive data is removed.",
   },
   {
     icon: Database,
-    title: 'Solutions become shared knowledge',
+    title: '2. Distill a reusable note',
     description:
-      'Captured lessons are stored in the cloud knowledge layer with semantic tagging. Community ratings and velocity scoring keep knowledge current as libraries evolve.',
+      'When cloud uploads are enabled, the scrubbed trace goes to the backend. A model distills the error and fix into a system note, stored with an embedding for retrieval.',
   },
   {
     icon: Sparkles,
-    title: 'Future agents start smarter',
+    title: '3. Retrieve and inject context',
     description:
-      'When a new agent encounters a similar environment, AuraBook detects the match and injects the relevant system note before the spiral begins.',
+      'On a related request, AuraBook retrieves a matching note and injects it into the agent context. Your configured provider generates the response. Local-only and cloud-sharing controls live in the client configuration.',
   },
 ]
 
@@ -46,6 +45,7 @@ export function LandingPage() {
               </p>
             </div>
             <div className="flex flex-col gap-4 sm:flex-row">
+              <a href="/quickstart.html" className="inline-flex items-center justify-center rounded-lg bg-accent px-6 py-3 font-semibold text-night">Get started</a>
               <Link to="/demo">
                 <Button size="lg">
                   View Demo
@@ -57,6 +57,11 @@ export function LandingPage() {
                   Open Dashboard
                 </Button>
               </Link>
+            </div>
+            <div className="max-w-2xl space-y-2">
+              <p className="text-sm text-text-secondary">Python 3.11+ · From an authorized FullBook source checkout:</p>
+              <pre className="wrap-anywhere whitespace-pre-wrap border-l-2 border-accent py-2 pl-4 text-sm"><code>python -m pip install ./Client{'\n'}aura start --demo</code></pre>
+              <a href="/quickstart.html" className="text-sm text-accent underline underline-offset-4">Installation, configuration, and privacy</a>
             </div>
           </div>
         </div>
@@ -106,7 +111,6 @@ export function LandingPage() {
         </div>
       </section>
 
-      <SiteFooter />
     </div>
   )
 }

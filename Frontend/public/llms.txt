@@ -12,10 +12,11 @@ AuraBook captures resolved coding failure trajectories, turns them into concise 
 ## Useful Pages
 
 - Home: https://aurabooks.vercel.app/
+- Installation and privacy: https://aurabooks.vercel.app/quickstart.html
 - Live demo: https://aurabooks.vercel.app/demo
 - Knowledge dashboard: https://aurabooks.vercel.app/dashboard
 
-The dashboard can legitimately be empty. An empty dashboard means the connected Supabase database has no ingested notes yet.
+The initial four notes are historical demonstration examples, not current adoption metrics. An unavailable API is shown separately from an empty database. The client source currently requires repository access.
 
 ## Public API
 

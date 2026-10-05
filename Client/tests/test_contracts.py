@@ -14,7 +14,7 @@ from aurabook.core.models import (
 )
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-CLOUD_ROOT = PROJECT_ROOT / "aurabook-cloud"
+CLOUD_ROOT = PROJECT_ROOT.parent / "Backend"
 if str(CLOUD_ROOT) not in sys.path:
     sys.path.insert(0, str(CLOUD_ROOT))
 

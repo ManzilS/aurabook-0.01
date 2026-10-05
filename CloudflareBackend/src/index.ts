@@ -203,8 +203,8 @@ export default {
         return wantsHtml(request) ? html(renderModels(payload), cors) : json(payload, cors)
       }
       if (url.pathname === '/v1/demo/compare' && request.method === 'POST') {
-        const body = await parsePublicBody<{ prompt?: string; api_key?: string; model?: string }>(request)
-        const payload = await liveCompare(body.prompt ?? '', body.api_key ?? '', body.model, env)
+        const body = await parsePublicBody<{ prompt?: string; api_key?: string; model?: string; provider?: string }>(request)
+        const payload = await liveCompare(body.prompt ?? '', body.api_key ?? '', body.model, env, body.provider)
         return wantsHtml(request) ? html(renderCompare(payload), cors) : json(payload, cors)
       }
       if (url.pathname === '/v1/ingest' && request.method === 'POST') {
@@ -283,9 +283,10 @@ function corsHeaders(request: Request, env: Env): HeadersInit {
     .map((item) => item.trim())
     .filter(Boolean)
   const allowOrigin =
-    allowed.includes(origin) || origin.endsWith('.vercel.app') ? origin : allowed[0] ?? '*'
+    allowed.includes(origin) ? origin : allowed[0] ?? 'null'
 
   return {
+    vary: 'Origin',
     'access-control-allow-origin': allowOrigin,
     'access-control-allow-methods': 'GET,POST,OPTIONS',
     'access-control-allow-headers':
@@ -428,19 +429,18 @@ async function privateJson(
   handler: (bodyText: string) => Promise<unknown>,
 ): Promise<Response> {
   const bodyText = await request.text()
-  const cached = loadIdempotentResponse(request)
-  if (cached !== undefined) {
-    return json(cached, cors)
-  }
-
   const authError = await validateSignature(request, env, bodyText)
   if (authError) {
     return json({ detail: authError }, cors, 401)
   }
+  const cached = loadIdempotentResponse(request, bodyText)
+  if (cached !== undefined) {
+    return json(cached, cors)
+  }
 
   try {
     const payload = await handler(bodyText)
-    storeIdempotentResponse(request, payload)
+    storeIdempotentResponse(request, bodyText, payload)
     return json(payload, cors)
   } catch (error) {
     return json({ detail: errorMessage(error) }, cors, 400)
@@ -458,7 +458,7 @@ function parseJson<T>(bodyText: string): T {
 async function validateSignature(request: Request, env: Env, bodyText: string): Promise<string | null> {
   const secret = env.AURABOOK_CLOUD_API_SHARED_SECRET?.trim()
   if (!secret) {
-    return null
+    return 'Private API authentication is not configured'
   }
 
   const timestamp = request.headers.get('X-AuraBook-Timestamp') ?? ''
@@ -507,9 +507,9 @@ function timingSafeEqualHex(left: string, right: string): boolean {
   return diff === 0
 }
 
-function loadIdempotentResponse(request: Request): unknown | undefined {
+function loadIdempotentResponse(request: Request, bodyText: string): unknown | undefined {
   pruneIdempotencyCache()
-  const key = request.headers.get('X-AuraBook-Idempotency-Key')?.trim()
+  const key = idempotencyKey(request, bodyText)
   if (!key) {
     return undefined
   }
@@ -521,8 +521,8 @@ function loadIdempotentResponse(request: Request): unknown | undefined {
   return entry.payload
 }
 
-function storeIdempotentResponse(request: Request, payload: unknown): void {
-  const key = request.headers.get('X-AuraBook-Idempotency-Key')?.trim()
+function storeIdempotentResponse(request: Request, bodyText: string, payload: unknown): void {
+  const key = idempotencyKey(request, bodyText)
   if (!key) {
     return
   }
@@ -530,6 +530,11 @@ function storeIdempotentResponse(request: Request, payload: unknown): void {
     expiresAt: Date.now() + IDEMPOTENCY_TTL_MS,
     payload,
   })
+}
+
+function idempotencyKey(request: Request, bodyText: string): string | null {
+  const key = request.headers.get('X-AuraBook-Idempotency-Key')?.trim()
+  return key ? JSON.stringify([request.method, new URL(request.url).pathname, key, bodyText]) : null
 }
 
 function pruneIdempotencyCache(): void {
@@ -649,7 +654,8 @@ async function prefetchTrajectory(payload: { cdc_hash?: string }, env: Env): Pro
     throw new Error('cdc_hash must be at least 8 characters.')
   }
 
-  const rows = await supabaseGet<Array<StoredTrajectoryRow & { trajectory_notes?: Array<{ id: string; note_text: string; source_model: string }> }>>(
+  type PrefetchedNote = { id: string; note_text: string; source_model: string }
+  const rows = await supabaseGet<Array<StoredTrajectoryRow & { trajectory_notes?: PrefetchedNote | PrefetchedNote[] | null }>>(
     env,
     'trajectories',
     {
@@ -662,7 +668,9 @@ async function prefetchTrajectory(payload: { cdc_hash?: string }, env: Env): Pro
   if (!trajectory) {
     return { found: false, match: null }
   }
-  const note = trajectory.trajectory_notes?.[0]
+  const note = Array.isArray(trajectory.trajectory_notes)
+    ? trajectory.trajectory_notes[0]
+    : trajectory.trajectory_notes
   return {
     found: true,
     match: {
@@ -1351,7 +1359,7 @@ function formatHistory(history: Array<Record<string, unknown>>): string {
     .join('\n\n')
 }
 
-async function liveCompare(prompt: string, apiKey: string, model: string | undefined, env: Env): Promise<unknown> {
+async function liveCompare(prompt: string, apiKey: string, model: string | undefined, env: Env, providerInput?: string): Promise<unknown> {
   if (!prompt.trim()) {
     throw new Error('Prompt is required.')
   }
@@ -1359,7 +1367,7 @@ async function liveCompare(prompt: string, apiKey: string, model: string | undef
     throw new Error('API key is required.')
   }
 
-  const provider = detectProvider(apiKey, model)
+  const provider = normalizeProvider(providerInput || detectProvider(apiKey, model))
   const modelName = model?.trim() || defaultModel(provider)
   let injectedNote: string | null = null
   let retrievalProviderCallCount = 0
@@ -1618,6 +1626,7 @@ async function listModelsForKey(apiKey: string, providerInput?: string): Promise
 
   try {
     const models = await fetchModels(provider, apiKey)
+    modelListCache.set(provider, { models: [...models], expiresAt: Date.now() + 3600000 })
     return {
       provider,
       valid: true,
@@ -1683,8 +1692,14 @@ async function fetchModels(provider: string, apiKey: string): Promise<string[]> 
   )
 }
 
+const modelListCache = new Map<string, { models: string[]; expiresAt: number }>()
+
 function warmModels(providerInput: string): ModelListResponse {
   const provider = normalizeProvider(providerInput)
+  const cached = modelListCache.get(provider)
+  if (cached && cached.expiresAt > Date.now()) {
+    return { provider, valid: false, models: [...cached.models], default_model: cached.models[0] ?? '', cache_status: 'warm', error: 'Validate your API key to confirm access to these models.' }
+  }
   const models =
     provider === 'claude'
       ? ['claude-sonnet-4-20250514', 'claude-haiku-4-5-20251001']

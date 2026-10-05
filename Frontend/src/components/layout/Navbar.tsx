@@ -28,6 +28,7 @@ export function Navbar() {
         </NavLink>
 
         <nav className="hidden items-center gap-6 md:flex">
+          <a href="/quickstart.html" className="text-sm text-accent">Get started</a>
           {navItems.map((item) => (
             <NavLink
               key={item.to}
@@ -60,17 +61,20 @@ export function Navbar() {
 
         <button
           type="button"
-          className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white md:hidden"
+          className="mobile-nav-toggle h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-white/20 bg-white/5 text-white"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           aria-label="Toggle navigation"
+          aria-expanded={mobileMenuOpen}
+          aria-controls="mobile-navigation"
         >
           {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
         </button>
       </div>
 
       {mobileMenuOpen ? (
-        <div className="border-t border-white/6 bg-surface/95 px-4 py-4 md:hidden">
+        <nav id="mobile-navigation" aria-label="Mobile navigation" className="border-t border-white/6 bg-surface px-4 py-4 md:hidden" onKeyDown={(event) => { if (event.key === 'Escape') setMobileMenuOpen(false) }}>
           <div className="flex flex-col gap-4">
+            <a href="/quickstart.html" className="text-sm text-accent">Get started</a>
             {navItems.map((item) => (
               <NavLink
                 key={item.to}
@@ -88,7 +92,7 @@ export function Navbar() {
               LinkedIn
             </a>
           </div>
-        </div>
+        </nav>
       ) : null}
     </header>
   )

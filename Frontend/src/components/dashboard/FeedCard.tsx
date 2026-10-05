@@ -92,6 +92,7 @@ export function FeedCard({
             onKeyDown={(event) => event.stopPropagation()}
             className="rounded-full border border-white/10 bg-white/5 p-2 text-text-secondary transition hover:text-white"
             aria-label="Upvote note"
+            title="Preview upvote for this session only; not saved"
           >
             <ArrowUp size={16} />
           </button>
@@ -104,6 +105,7 @@ export function FeedCard({
             onKeyDown={(event) => event.stopPropagation()}
             className="rounded-full border border-white/10 bg-white/5 p-2 text-text-secondary transition hover:text-white"
             aria-label="Downvote note"
+            title="Preview downvote for this session only; not saved"
           >
             <ArrowDown size={16} />
           </button>

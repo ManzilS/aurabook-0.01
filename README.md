@@ -1,6 +1,14 @@
-# FullBook
+# aurabook-CODEX
+
+Preserved AuraBook prototype checkpoint. Continued development belongs in the separate private `ManzilS/aurabook-focused` repository. This repository retains the original client, frontend, and backend implementation; the local folder remains named `FullBook`.
 
 This folder separates AuraBook into deployable/use-focused parts.
+
+Start with [DEPLOYMENT.md](DEPLOYMENT.md) for local setup, production configuration, verification, and current limitations. Use Node 24 and Python 3.11+.
+
+## CloudflareBackend
+
+The Worker API used by the production website. It provides live provider comparison, model discovery, dashboard reads, and signed client ingestion/search/feedback routes. See [CloudflareBackend/README.md](CloudflareBackend/README.md).
 
 ## Client
 

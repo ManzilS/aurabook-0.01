@@ -5,7 +5,7 @@ React, TypeScript, Tailwind, Zustand, Axios, Recharts, and React Router frontend
 ## Local Development
 
 ```bash
-cd frontend
+cd Frontend
 npm install
 npm run dev
 ```
@@ -15,7 +15,7 @@ The app runs on `http://127.0.0.1:5173`.
 ## Build
 
 ```bash
-cd frontend
+cd Frontend
 npm run typecheck
 npm run build
 ```
@@ -33,7 +33,7 @@ VITE_AURABOOK_LINKEDIN_URL=https://www.linkedin.com
 VITE_AURABOOK_LIVE_COMPARE_URL=
 ```
 
-When the dashboard endpoints are not available, the UI falls back to mocked live polling so the product story still works for demos.
+When the dashboard endpoint is unavailable, the UI displays an error and retries. It never substitutes sample notes. The scripted replay is separate from the live provider comparison.
 
 ## Vercel
 
@@ -41,6 +41,8 @@ This app is Vercel-ready as a static SPA:
 
 - build command: `npm run build`
 - output directory: `dist`
-- root directory: `frontend`
+- root directory: `Frontend`
 
 `vercel.json` rewrites all routes to `index.html` so React Router works in production.
+
+See [deployment instructions](../DEPLOYMENT.md) for backend configuration, browser tests, and current limitations.

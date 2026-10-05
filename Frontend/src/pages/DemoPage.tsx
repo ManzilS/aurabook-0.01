@@ -29,6 +29,7 @@ export function DemoPage() {
     setScenarioId,
     setSelectedPrompt,
     setApiKey,
+    setProvider,
     setRememberApiKey,
     setSelectedModel,
     refreshModelList,
@@ -43,7 +44,7 @@ export function DemoPage() {
   }, [selectedScenarioId, mode, resetPanels])
 
   useEffect(() => {
-    if (mode === 'live' && apiKey) {
+    if (mode === 'live' && useDemoStore.getState().apiKey) {
       void refreshModelList()
     }
   }, [mode, refreshModelList])
@@ -90,8 +91,8 @@ export function DemoPage() {
             <div className={mobileVisiblePanel === 'right' ? 'block' : 'hidden md:block'}>
               <TerminalPanel panel={right} />
             </div>
-            <div className="pointer-events-none absolute inset-y-0 left-1/2 hidden -translate-x-1/2 items-center md:flex">
-              <div className="relative h-full w-px bg-white/8">
+            <div className="pointer-events-none absolute inset-y-0 left-1/2 hidden -translate-x-1/2 items-center md:flex" aria-hidden="true">
+              <div className="relative h-full w-px">
                 <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/10 bg-night px-4 py-2 text-xs uppercase tracking-[0.35em] text-text-secondary">
                   VS
                 </span>
@@ -145,6 +146,16 @@ export function DemoPage() {
               </div>
             ) : (
               <div className="mt-8 grid gap-6">
+                <label className="block text-sm font-medium text-white">
+                  Provider
+                  <select aria-label="Provider" value={provider} onChange={(event) => setProvider(event.target.value)} disabled={running}
+                    className="mt-2 w-full rounded-lg border border-white/10 bg-night px-4 py-3">
+                    <option value="openai">OpenAI</option>
+                    <option value="claude">Anthropic Claude</option>
+                    <option value="gemini">Google Gemini</option>
+                    <option value="deepseek">DeepSeek</option>
+                  </select>
+                </label>
                 <label className="block text-sm font-medium text-white">
                   Prompt
                   <textarea
@@ -210,6 +221,7 @@ export function DemoPage() {
                 </label>
 
                 <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-text-secondary">
+                  Your key is sent over HTTPS to the AuraBook backend, which forwards requests to your selected provider. It does not stay only in your browser. The demo does not write your key to the database. Browser storage is controlled by the remember option above.{' '}
                   Live mode uses your key for retrieval when the provider supports embeddings, then makes two real
                   completion calls: baseline without AuraBook and AuraBook with retrieved context. Those calls should
                   appear in your provider usage logs. Python code blocks in the responses run locally in Pyodide.
@@ -237,9 +249,9 @@ export function DemoPage() {
             {error ? <p className="mt-4 text-sm text-danger">{error}</p> : null}
           </div>
 
-          <div className="flex justify-between text-sm text-text-secondary">
+          <div className="flex flex-wrap items-center justify-between gap-4 text-sm text-text-secondary">
             <span>{activeScenario.leftSummary}</span>
-            <Link to="/dashboard" className="text-accent">
+            <Link to="/dashboard" className="shrink-0 rounded-lg border border-accent/40 px-4 py-2 text-accent underline underline-offset-4">
               Explore the live knowledge feed
             </Link>
           </div>

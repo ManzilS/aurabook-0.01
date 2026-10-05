@@ -18,7 +18,7 @@ Required for private client routes if you want signed requests:
 npx wrangler secret put AURABOOK_CLOUD_API_SHARED_SECRET
 ```
 
-If this secret is unset, private routes are open to anyone who knows the Worker URL. Keep it set in production.
+Private routes reject requests when this secret is unset. Configure it before connecting a client.
 
 ## Public Env Var
 

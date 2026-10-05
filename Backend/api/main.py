@@ -63,6 +63,7 @@ class DemoCompareRequest(BaseModel):
     prompt: str
     api_key: str
     model: str | None = None
+    provider: str | None = None
 
 
 class DemoModelsRequest(BaseModel):
@@ -331,9 +332,13 @@ def create_app(
         injected_note: str | None = None
         retrieval_provider_call_count = 0
         try:
-            if _detect_live_demo_provider(payload.api_key) in {"openai", "gemini"}:
+            provider = payload.provider or _detect_live_demo_provider(payload.api_key)
+            if provider in {"openai", "gemini"}:
                 retrieval_provider_call_count = 1
-            query_embedding = await _embed_live_demo_prompt(payload.prompt, payload.api_key)
+            query_embedding = (
+                await _embed_live_demo_prompt(payload.prompt, payload.api_key)
+                if provider in {"openai", "gemini"} else None
+            )
             if query_embedding is None:
                 logger.info("Skipping live demo note search because provider has no supported embedding path")
             else:
@@ -354,6 +359,7 @@ def create_app(
             api_key=payload.api_key,
             injected_note=injected_note,
             model_name=payload.model,
+            provider=payload.provider,
         )
 
         return DemoCompareResponse(

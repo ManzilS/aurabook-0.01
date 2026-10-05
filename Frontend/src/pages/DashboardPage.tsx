@@ -39,6 +39,7 @@ export function DashboardPage() {
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
   const {
     loading,
+    error,
     notes,
     errorClusters,
     activities,
@@ -127,6 +128,13 @@ export function DashboardPage() {
           </aside>
 
           <section className="min-w-0 space-y-5">
+            <p className="rounded-lg border border-accent/20 bg-accent/5 p-4 text-sm text-text-secondary">Developer preview: the initial four notes are historical demonstration examples. Their original dates and recorded metrics are preserved; this is not a measure of current adoption.</p>
+            <p className="text-sm text-text-secondary">Ratings on this page are session-only previews. Published notes come from the connected API.</p>
+            {error ? (
+              <p role="alert" className="border border-warning/30 p-4 text-warning">
+                {error}
+              </p>
+            ) : null}
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
                 <p className="text-xs uppercase tracking-[0.35em] text-accent">Live Feed</p>

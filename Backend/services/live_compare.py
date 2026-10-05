@@ -87,7 +87,7 @@ def _build_provider(
             timeout=timeout,
         )
     return OpenAICompatibleTextProvider(
-        provider_name="openai",
+        provider_name=provider_name,
         base_url=base_url,
         api_key=api_key,
         model_name=model_name,
@@ -102,9 +102,21 @@ async def run_live_compare(
     injected_note: str | None,
     model_name: str | None = None,
     timeout: float = 30.0,
+    provider: str | None = None,
 ) -> LiveCompareResult:
     """Make real baseline and AuraBook provider calls with the user's key."""
     provider_name, base_url, detected_model_name = _detect_provider(api_key)
+    if provider:
+        providers = {
+            "openai": ("https://api.openai.com/v1", "gpt-4o-mini"),
+            "deepseek": ("https://api.deepseek.com/v1", "deepseek-chat"),
+            "claude": ("https://api.anthropic.com", "claude-haiku-4-5-20251001"),
+            "gemini": ("https://generativelanguage.googleapis.com/v1beta", "gemini-2.5-flash"),
+        }
+        if provider not in providers:
+            raise ValueError("Unsupported demo provider")
+        provider_name = provider
+        base_url, detected_model_name = providers[provider]
     resolved_model_name = model_name.strip() if model_name and model_name.strip() else detected_model_name
 
     left_events: list[LiveDemoEvent] = [

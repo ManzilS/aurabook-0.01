@@ -66,9 +66,11 @@ export function TerminalPanel({ panel }: TerminalPanelProps) {
 
       <div className="flex items-center justify-between border-b border-white/8 px-5 py-3 text-sm text-text-secondary">
         <div className="flex items-center gap-2">
-          {panel.complete ? (
+          {panel.statusLabel.toLowerCase().includes('error') || panel.statusLabel.toLowerCase().includes('failed') ? (
+            <TriangleAlert className="text-danger" size={16} />
+          ) : panel.complete ? (
             <CheckCircle2 className="text-success" size={16} />
-          ) : panel.statusLabel.includes('Debug') || panel.statusLabel.includes('Retry') ? (
+          ) : panel.entries.length > 0 ? (
             <LoaderCircle className="animate-spin text-warning" size={16} />
           ) : (
             <Sparkles className="text-accent" size={16} />

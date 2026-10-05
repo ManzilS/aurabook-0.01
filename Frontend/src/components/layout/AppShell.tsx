@@ -1,6 +1,7 @@
 import { Suspense, lazy } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { Navbar } from './Navbar'
+import { SiteFooter } from './SiteFooter'
 
 const LandingPage = lazy(async () => import('../../pages/LandingPage').then((module) => ({ default: module.LandingPage })))
 const DemoPage = lazy(async () => import('../../pages/DemoPage').then((module) => ({ default: module.DemoPage })))
@@ -39,6 +40,7 @@ export function AppShell() {
             </Routes>
           </Suspense>
         </div>
+        <SiteFooter />
       </main>
     </div>
   )

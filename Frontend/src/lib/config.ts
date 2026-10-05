@@ -5,7 +5,7 @@ function envOrDefault(value: string | undefined, fallback: string): string {
 
 const apiBaseUrl = envOrDefault(
   import.meta.env.VITE_AURABOOK_API_BASE_URL,
-  import.meta.env.DEV ? 'http://127.0.0.1:8000' : '',
+  import.meta.env.DEV ? 'http://127.0.0.1:8000' : 'https://aurabook-api.manzilsapkota.workers.dev',
 ).replace(/\/$/, '')
 
 function deriveDashboardApiUrl(): string {
@@ -24,8 +24,8 @@ function deriveWebsocketUrl(): string {
 }
 
 export const appConfig = {
-  githubUrl: envOrDefault(import.meta.env.VITE_AURABOOK_GITHUB_URL, 'https://github.com/ManzilS/AuraBook'),
-  linkedinUrl: envOrDefault(import.meta.env.VITE_AURABOOK_LINKEDIN_URL, 'https://www.linkedin.com'),
+  githubUrl: envOrDefault(import.meta.env.VITE_AURABOOK_GITHUB_URL, 'https://github.com/ManzilS'),
+  linkedinUrl: envOrDefault(import.meta.env.VITE_AURABOOK_LINKEDIN_URL, 'https://www.linkedin.com/in/manzilsapkota'),
   apiBaseUrl,
   dashboardApiUrl: envOrDefault(import.meta.env.VITE_AURABOOK_DASHBOARD_API_URL, deriveDashboardApiUrl()),
   websocketUrl: envOrDefault(import.meta.env.VITE_AURABOOK_WS_URL, deriveWebsocketUrl()),

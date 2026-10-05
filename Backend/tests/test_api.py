@@ -148,7 +148,7 @@ async def test_demo_compare_endpoint_uses_matching_note(monkeypatch, services) -
     ]
     captured: dict[str, str | None] = {}
 
-    async def fake_run_live_compare(*, prompt, api_key, injected_note, model_name):
+    async def fake_run_live_compare(*, prompt, api_key, injected_note, model_name, provider=None):
         captured.update(
             {
                 "prompt": prompt,

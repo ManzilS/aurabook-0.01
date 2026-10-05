@@ -144,6 +144,7 @@ interface DemoState {
   setScenarioId: (scenarioId: string) => void
   setSelectedPrompt: (prompt: string) => void
   setApiKey: (value: string) => void
+  setProvider: (value: string) => void
   setRememberApiKey: (value: boolean) => void
   setSelectedModel: (value: string) => void
   refreshModelList: () => Promise<void>
@@ -200,7 +201,11 @@ async function executeScenario(
   }
 
   if (replayRunId === currentRunId) {
-    set({ running: false })
+    set((state) => ({
+      running: false,
+      left: { ...state.left, complete: true },
+      right: { ...state.right, complete: true },
+    }))
   }
 }
 
@@ -298,9 +303,15 @@ export const useDemoStore = create<DemoState>((set, get) => ({
     }))
   },
   setSelectedPrompt: (prompt) => set({ selectedPrompt: prompt }),
+  setProvider: (provider) => {
+    ++keyValidationRunId
+    set({ provider, selectedModel: '', availableModels: [], apiKeyStatus: 'idle' })
+    void get().refreshModelList()
+  },
   setApiKey: (value) => {
+    ++keyValidationRunId
     storeApiKey(value, get().rememberApiKey)
-    const provider = detectProviderFromKey(value)
+    const provider = get().provider === 'deepseek' ? 'deepseek' : detectProviderFromKey(value)
     set({
       apiKey: value,
       provider,
@@ -325,7 +336,7 @@ export const useDemoStore = create<DemoState>((set, get) => ({
   refreshModelList: async () => {
     const runId = ++keyValidationRunId
     const apiKey = get().apiKey.trim()
-    const provider = detectProviderFromKey(apiKey)
+    const provider = get().provider
     if (!apiKey) {
       set({
         apiKeyStatus: 'idle',
@@ -351,7 +362,7 @@ export const useDemoStore = create<DemoState>((set, get) => ({
         return
       }
 
-      const result = await validateApiKeyModels(apiKey)
+      const result = await validateApiKeyModels(apiKey, provider)
       if (runId !== keyValidationRunId) {
         return
       }
@@ -397,15 +408,17 @@ export const useDemoStore = create<DemoState>((set, get) => ({
     })
 
     try {
-      const scenario = await resolveLiveScenario(get().apiKey, get().selectedPrompt, get().selectedModel)
+      const scenario = await resolveLiveScenario(get().apiKey, get().selectedPrompt, get().selectedModel, get().provider)
       await executeScenario(scenario, set, 'live')
     } catch (error) {
       set({
         running: false,
+        left: { ...get().left, complete: true, statusLabel: 'Request failed' },
+        right: { ...get().right, complete: true, statusLabel: 'Request failed' },
         error:
           error instanceof Error
             ? error.message
-            : 'Live demo could not start. Falling back to the guided replay.',
+            : 'Live demo could not start. No simulated response was substituted.',
       })
     }
   },

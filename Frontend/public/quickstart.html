@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Get started | AuraBook</title>
+  <meta name="description" content="Install the AuraBook Python client, run an offline demo, and configure privacy and cloud sharing.">
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#0a0a0a;color:#eee;font:16px/1.7 system-ui,sans-serif}header,main,footer{max-width:960px;margin:auto;padding:24px}nav{display:flex;gap:24px;flex-wrap:wrap}a{color:#00d4ff;text-underline-offset:4px}h1{font-size:40px;line-height:1.15}h2{font-size:24px;margin-top:40px}p{max-width:75ch;color:#bbb}pre{padding:20px;background:#141414;border:1px solid #333;border-radius:8px;white-space:pre-wrap;overflow-wrap:anywhere}code{font-size:14px}section{padding-bottom:24px;border-bottom:1px solid #292929}.notice{border-left:3px solid #00d4ff;padding-left:16px}footer{margin-top:32px}details{margin:16px 0}summary{cursor:pointer;color:#00d4ff}li{margin:8px 0}h1,h2,p,a{overflow-wrap:anywhere}
+  </style>
+</head>
+<body>
+  <header><nav aria-label="Primary"><a href="/">AuraBook</a><a href="/demo#demo">Demo</a><a href="/dashboard#dashboard">Dashboard</a><a href="https://github.com/ManzilS">Developer on GitHub</a></nav></header>
+  <main>
+    <h1>Get started with AuraBook</h1>
+    <p>A local Python proxy for coding agents, with optional shared cloud memory.</p>
+    <p class="notice">Developer preview: the FullBook source repository is currently private. The install steps below require an authorized source checkout; there is no public package download advertised here. You can try the <a href="/demo#demo">browser demo</a> without installing the client.</p>
+    <section><h2>1. Install the client</h2>
+      <p>Requires Python 3.11 or newer. In your FullBook checkout, create a virtual environment and install the Client package:</p>
+      <pre><code>python -m venv .venv</code></pre>
+      <details open><summary>Windows PowerShell</summary><pre><code>.\.venv\Scripts\Activate.ps1
+python -m pip install ./Client</code></pre></details>
+      <details><summary>macOS / Linux</summary><pre><code>source .venv/bin/activate
+python -m pip install ./Client</code></pre></details>
+    </section>
+    <section><h2>2. Run the offline demo</h2><pre><code>aura start --demo</code></pre>
+      <p>The proxy listens at <code>http://127.0.0.1:8080</code> by default. Demo mode uses scripted local responses, not paid provider calls. In a second terminal using the same environment:</p>
+      <pre><code>aura status
+aura audit --text "Contact developer@example.com"</code></pre>
+      <p>The audit command previews the client's redaction without uploading the supplied text.</p>
+    </section>
+    <section><h2>3. Connect a real provider</h2>
+      <p>Stop the demo with Ctrl+C. Create a <code>.env</code> in the directory where you run AuraBook. Use your provider key locally and keep this file out of source control.</p>
+      <pre><code>AURABOOK_DEMO_MODE=false
+AURABOOK_CLOUD_ENABLED=false
+AURABOOK_UPSTREAM_BASE_URL=https://api.openai.com/v1
+AURABOOK_UPSTREAM_API_KEY=YOUR_PROVIDER_KEY</code></pre>
+      <pre><code>aura start</code></pre>
+      <p>Configure an OpenAI-compatible agent to use <code>http://127.0.0.1:8080/v1</code> as its base URL and select a model available to your provider account. Provider requests incur the provider's usual charges.</p>
+      <p>Cloud sharing is disabled in this example. Shared memory requires a configured backend and an administrator-issued signing secret. Do not place a shared secret or Supabase service-role key in browser code.</p>
+    </section>
+    <section><h2>What leaves your machine?</h2>
+      <ol><li><strong>Proxy and redact:</strong> the local client captures the debugging context and scrubs recognized sensitive patterns before sharing a trajectory. Review with <code>aura audit</code>; redaction can miss sensitive data.</li><li><strong>Distill:</strong> when uploads are enabled, the backend receives the scrubbed trace and uses a model to produce a reusable note.</li><li><strong>Inject:</strong> relevant stored notes are retrieved and added to later agent requests.</li></ol>
+      <p>The hosted live demo is a different path: your key and prompt travel over HTTPS to AuraBook's backend and then the provider. The key is not written to the demo database. It is retained in session storage, or local storage if you choose Remember. Python snippets execute in your browser through Pyodide and require JavaScript.</p>
+    </section>
+  </main>
+  <footer><nav aria-label="Footer"><a href="/">Home</a><a href="/demo#demo">Try the demo</a><a href="/dashboard#dashboard">Dashboard</a><a href="https://www.linkedin.com/in/manzilsapkota">LinkedIn</a></nav><p>AuraBook developer preview.</p></footer>
+</body>
+</html>

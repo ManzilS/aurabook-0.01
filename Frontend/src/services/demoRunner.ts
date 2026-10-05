@@ -66,10 +66,10 @@ export async function fetchWarmModels(provider: string): Promise<DemoModelsRespo
   return response.data
 }
 
-export async function validateApiKeyModels(apiKey: string): Promise<DemoModelsResponse> {
+export async function validateApiKeyModels(apiKey: string, provider: string): Promise<DemoModelsResponse> {
   const response = await apiClient.post<DemoModelsResponse>(
     '/v1/demo/models',
-    { api_key: apiKey },
+    { api_key: apiKey, provider },
     { timeout: 25000 },
   )
   return response.data
@@ -86,7 +86,7 @@ export function detectProviderFromKey(apiKey: string): string {
   return 'openai'
 }
 
-export async function resolveLiveScenario(apiKey: string, prompt: string, model: string): Promise<DemoScenario> {
+export async function resolveLiveScenario(apiKey: string, prompt: string, model: string, provider: string): Promise<DemoScenario> {
   const compareUrl = appConfig.liveCompareUrl
   if (!compareUrl) {
     throw new Error('Live compare endpoint is not configured.')
@@ -97,8 +97,8 @@ export async function resolveLiveScenario(apiKey: string, prompt: string, model:
 
   const response = await apiClient.post<LiveCompareResponse>(
     compareUrl,
-    { prompt, api_key: apiKey, model },
-    { timeout: 35000 },
+    { prompt, api_key: apiKey, model, provider },
+    { timeout: 180000 },
   )
   const data = response.data
 
@@ -124,12 +124,12 @@ export async function resolveLiveScenario(apiKey: string, prompt: string, model:
 
   const tokenSummary =
     data.total_tokens > 0
-      ? `${data.total_tokens.toLocaleString()} completion tokens across ${data.provider_call_count} real ${data.provider_used} requests.`
+      ? `${data.total_tokens.toLocaleString()} tokens for the two model responses; ${data.provider_call_count} ${data.provider_used} requests including retrieval.`
       : 'Token count unavailable.'
   const retrievalSummary =
     data.retrieval_provider_call_count > 0
       ? ` Includes ${data.retrieval_provider_call_count} retrieval embedding call.`
-      : ' Retrieval skipped because this provider has no supported embedding endpoint.'
+      : ' No successful retrieval embedding call was reported.'
 
   return {
     id: `live-${Date.now()}`,

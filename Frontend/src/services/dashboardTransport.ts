@@ -1,5 +1,4 @@
 import { appConfig } from '../lib/config'
-import { buildMockSnapshot } from '../data/mockDashboard'
 import type { ConnectionStatus } from '../types/app'
 import type {
   DashboardActivity,
@@ -35,30 +34,13 @@ function dedupeById<T extends { id: string }>(items: T[]): T[] {
   })
 }
 
-function bumpNote(note: KnowledgeNote): KnowledgeNote {
-  const nextScore = note.score + (note.unsolved ? 0 : 1)
-  const nextUsage = note.usageCount + 1
-
-  return {
-    ...note,
-    score: nextScore,
-    usageCount: nextUsage,
-    recentlyUpdated: true,
-    ratingHistory: [
-      ...note.ratingHistory,
-      {
-        timestamp: new Date().toISOString(),
-        score: nextScore,
-      },
-    ],
-  }
-}
-
 async function fetchSnapshot(): Promise<DashboardSnapshot> {
   if (!appConfig.dashboardApiUrl) {
     throw new Error('Dashboard API endpoint is not configured.')
   }
-  const response = await fetch(`${appConfig.dashboardApiUrl.replace(/\/$/, '')}/snapshot`)
+  const response = await fetch(`${appConfig.dashboardApiUrl.replace(/\/$/, '')}/snapshot`, {
+    signal: AbortSignal.timeout(10000),
+  })
   if (!response.ok) {
     throw new Error(`Failed to load dashboard snapshot: ${response.status}`)
   }
@@ -326,55 +308,24 @@ function normalizeNote(note: Record<string, unknown>): KnowledgeNote {
   }
 }
 
-function startPreviewPolling(handlers: TransportHandlers): () => void {
-  let active = true
-  let noteCursor = 0
-  const seed = buildMockSnapshot()
-
-  handlers.onStatus('preview')
-  handlers.onSnapshot(seed)
-
-  const interval = window.setInterval(() => {
-    if (!active) {
-      return
-    }
-
-    const note = bumpNote(seed.notes[noteCursor % seed.notes.length])
-    noteCursor += 1
-    seed.notes = [note, ...seed.notes.filter((candidate) => candidate.id !== note.id)]
-    handlers.onNote(note)
-    handlers.onActivity({
-      id: `activity-${Date.now()}`,
-      text: note.unsolved
-        ? `New unsolved cluster detected — ${note.problemTag}`
-        : `Agent solved: ${note.problemTag}`,
-      createdAt: new Date().toISOString(),
-      tone: note.unsolved ? 'warning' : 'success',
-    })
-  }, 7000)
-
-  return () => {
-    active = false
-    window.clearInterval(interval)
-  }
-}
-
 function startLivePolling(handlers: TransportHandlers): () => void {
   let active = true
-
-  handlers.onStatus('polling')
+  let pending = false
 
   const interval = window.setInterval(async () => {
-    if (!active) {
+    if (!active || pending) {
       return
     }
-
+    pending = true
     try {
       const snapshot = await fetchSnapshot()
+      if (!active) return
       handlers.onSnapshot(snapshot)
       handlers.onStatus('polling')
     } catch {
-      handlers.onStatus('disconnected')
+      if (active) handlers.onStatus('disconnected')
+    } finally {
+      pending = false
     }
   }, 8000)
 
@@ -387,17 +338,21 @@ function startLivePolling(handlers: TransportHandlers): () => void {
 export async function bootstrapDashboardTransport(
   handlers: TransportHandlers,
 ): Promise<() => void> {
-  let initialSnapshot: DashboardSnapshot | null = null
-
   try {
     handlers.onStatus('connecting')
-    initialSnapshot = await fetchSnapshot()
+    const initialSnapshot = await fetchSnapshot()
     handlers.onSnapshot(initialSnapshot)
   } catch {
-    return startPreviewPolling(handlers)
+    handlers.onSnapshot({
+      notes: [], errorClusters: [], activities: [],
+      stats: { totalNotes: 0, activeAgents: 0, problemsSolvedToday: 0 },
+    })
+    handlers.onStatus('disconnected')
+    return startLivePolling(handlers)
   }
 
   if (!appConfig.websocketUrl) {
+    handlers.onStatus('polling')
     return startLivePolling(handlers)
   }
 

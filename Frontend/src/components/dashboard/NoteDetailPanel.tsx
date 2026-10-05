@@ -282,6 +282,7 @@ export function NoteDetailPanel({
         </div>
       </div>
 
+      <p className="text-sm text-warning">Comments, ratings, and solution edits are local previews for this session. They are not saved to the community database.</p>
       <div className="grid gap-3 md:grid-cols-2">
         <Button variant="secondary" onClick={onDownload}>
           <Download className="mr-2" size={16} />
